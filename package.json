@@ -1,0 +1,25 @@
+{
+  "name": "gcontact-notion-sync",
+  "version": "1.0.0",
+  "description": "Node app to sync Google Contacts to Notion",
+  "main": "index.js",
+  "scripts": {
+    "test": "test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hbridge/gcontact-notion-sync.git"
+  },
+  "keywords": [
+    "google",
+    "notion",
+    "sync",
+    "contacts"
+  ],
+  "author": "Henry Bridge <hbridge@oldfashionedsw.com> (https://www.oldfashionedsw.com/)",
+  "license": "Apache-2.0",
+  "bugs": {
+    "url": "https://github.com/hbridge/gcontact-notion-sync/issues"
+  },
+  "homepage": "https://github.com/hbridge/gcontact-notion-sync#readme"
+}
