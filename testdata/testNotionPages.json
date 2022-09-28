@@ -1,0 +1,403 @@
+{
+    "fullContact": {
+        "object": "page",
+        "id": "963ab9a3-62af-46a8-94f3-16cee21a0aaf",
+        "created_time": "2021-12-23T21:03:00.000Z",
+        "last_edited_time": "2021-12-23T21:03:00.000Z",
+        "created_by": {
+            "object": "user",
+            "id": "e1950a0b-3895-467a-b728-61d951a516ad"
+        },
+        "last_edited_by": {
+            "object": "user",
+            "id": "e1950a0b-3895-467a-b728-61d951a516ad"
+        },
+        "cover": null,
+        "icon": null,
+        "parent": {
+            "type": "database_id",
+            "database_id": "aa5b890d-ee00-4a14-1c2z-8c68e986e4a9"
+        },
+        "archived": false,
+        "properties": {
+            "Edited": {
+                "id": "PXMa",
+                "type": "last_edited_time",
+                "last_edited_time": "2021-12-23T21:03:00.000Z"
+            },
+            "First Name": {
+                "id": "VWxu",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "John",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "John",
+                    "href": null
+                }]
+            },
+            "Last Name": {
+                "id": "lMZw",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "Doe",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "Doe",
+                    "href": null
+                }]
+            },
+            "Organization": {
+                "id": "t%5C%5Bm",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "Acme Inc",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "Acme Inc",
+                    "href": null
+                }]
+            },
+            "Title": {
+                "id": "hVha",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "Employee",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "Employee",
+                    "href": null
+                }]
+            },
+            "contactId": {
+                "id": "~eTH",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "c732814806012454425",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "c732814806012454425",
+                    "href": null
+                }]
+            },
+            "Name": {
+                "id": "title",
+                "type": "title",
+                "title": [{
+                    "type": "text",
+                    "text": {
+                        "content": "John Doe",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "John Doe",
+                    "href": null
+                }]
+            }
+        },
+        "url": "https://www.notion.so/John-Doe-963ab9a362af46a894f3116cee21a0aaf"
+    },
+    "minimalContact": {
+        "object": "page",
+        "id": "c9445ca7-c0bc-986a-4e49-18c29b69b1a9",
+        "created_time": "2021-12-23T20:54:00.000Z",
+        "last_edited_time": "2022-05-19T15:57:00.000Z",
+        "created_by": {
+            "object": "user",
+            "id": "e1950a0b-3895-467a-b728-61d951a516ad"
+        },
+        "last_edited_by": {
+            "object": "user",
+            "id": "e1950a0b-3895-467a-b728-61d951a516ad"
+        },
+        "cover": null,
+        "icon": null,
+        "parent": {
+            "type": "database_id",
+            "database_id": "aa5b890d-ee00-4a14-1c2z-8c68e986e4a9"
+        },
+        "archived": false,
+        "properties": {
+            "Edited": {
+                "id": "PXMa",
+                "type": "last_edited_time",
+                "last_edited_time": "2022-05-19T15:57:00.000Z"
+            },
+            "First Name": {
+                "id": "VWxu",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "Jane",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "Jane",
+                    "href": null
+                }]
+            },
+            "Title": {
+                "id": "hVha",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "",
+                    "href": null
+                }]
+            },
+            "Last Name": {
+                "id": "lMZw",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "Foe",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "Foe",
+                    "href": null
+                }]
+            },
+            "Organization": {
+                "id": "t%5C%5Bm",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "",
+                    "href": null
+                }]
+            },
+            "contactId": {
+                "id": "~eTH",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "c311019023925517686",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "c311019023925517686",
+                    "href": null
+                }]
+            },
+            "Name": {
+                "id": "title",
+                "type": "title",
+                "title": [{
+                    "type": "text",
+                    "text": {
+                        "content": "Jane Foe",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "Jane Foe",
+                    "href": null
+                }]
+            }
+        },
+        "url": "https://www.notion.so/Jane-Foe-c9445ca7c0bc986a4e4918c29b69b1a9"
+    },
+    "missingFirstLast": {
+        "object": "page",
+        "id": "963ab9a3-62af-46a8-94f3-16cee21a0aaf",
+        "created_time": "2021-12-23T21:03:00.000Z",
+        "last_edited_time": "2021-12-23T21:03:00.000Z",
+        "created_by": {
+            "object": "user",
+            "id": "e1950a0b-3895-467a-b728-61d951a516ad"
+        },
+        "last_edited_by": {
+            "object": "user",
+            "id": "e1950a0b-3895-467a-b728-61d951a516ad"
+        },
+        "cover": null,
+        "icon": null,
+        "parent": {
+            "type": "database_id",
+            "database_id": "aa5b890d-ee00-4a14-1c2z-8c68e986e4a9"
+        },
+        "archived": false,
+        "properties": {
+            "Edited": {
+                "id": "PXMa",
+                "type": "last_edited_time",
+                "last_edited_time": "2021-12-23T21:03:00.000Z"
+            },
+            "First Name": {
+                "id": "VWxu",
+                "type": "rich_text",
+                "rich_text": []
+            },
+            "Title": {
+                "id": "hVha",
+                "type": "rich_text",
+                "rich_text": []
+            },
+            "Last Name": {
+                "id": "lMZw",
+                "type": "rich_text",
+                "rich_text": []
+            },
+            "Organization": {
+                "id": "t%5C%5Bm",
+                "type": "rich_text",
+                "rich_text": []
+            },
+            "contactId": {
+                "id": "~eTH",
+                "type": "rich_text",
+                "rich_text": [{
+                    "type": "text",
+                    "text": {
+                        "content": "c395814806012454425",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "c395814806012454425",
+                    "href": null
+                }]
+            },
+            "Name": {
+                "id": "title",
+                "type": "title",
+                "title": [{
+                    "type": "text",
+                    "text": {
+                        "content": "Missing",
+                        "link": null
+                    },
+                    "annotations": {
+                        "bold": false,
+                        "italic": false,
+                        "strikethrough": false,
+                        "underline": false,
+                        "code": false,
+                        "color": "default"
+                    },
+                    "plain_text": "Missing",
+                    "href": null
+                }]
+            }
+        },
+        "url": "https://www.notion.so/Missing-963ab9a362af46a894f3116cee21a0aaf"
+    }
+}

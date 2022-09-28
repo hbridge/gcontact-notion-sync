@@ -1,0 +1,101 @@
+{
+    "fullContact": {
+        "resourceName": "people/c732814806012454425",
+        "etag": "%EggBAgkMLjc9ABCDEFABByIMbzMzdFFTQ1lKZTQ9",
+        "names": [{
+            "metadata": {
+                "primary": true,
+                "source": {
+                    "type": "CONTACT",
+                    "id": "57e372409d123456"
+                }
+            },
+            "displayName": "John Doe",
+            "familyName": "Doe",
+            "givenName": "John",
+            "displayNameLastFirst": "Doe, John",
+            "unstructuredName": "John Doe"
+        }],
+        "organizations": [{
+            "metadata": {
+                "primary": true,
+                "source": {
+                    "type": "CONTACT",
+                    "id": "57e372409d123456"
+                },
+                "sourcePrimary": true
+            },
+            "type": "Other",
+            "formattedType": "Other",
+            "name": "Acme Inc",
+            "title": "Employee"
+        }]
+    },
+    "minimalContact": {
+        "resourceName": "people/c311019023925517686",
+        "etag": "%EggBAgkMLjc9ABCDEFABEyIMQzlSaCtYTXY5emc9",
+        "names": [{
+            "metadata": {
+                "primary": true,
+                "source": {
+                    "type": "CONTACT",
+                    "id": "453149277123456"
+                }
+            },
+            "displayName": "Jane Foe",
+            "familyName": "Foe",
+            "givenName": "Jane",
+            "displayNameLastFirst": "Foe, Jane",
+            "unstructuredName": "Jane Foe"
+        }]
+    },
+    "missingFirstLast": {
+        "resourceName": "people/c5766343022976452256",
+        "etag": "%EggBAgkMLjc9ABCDEFABByIMWkJVOXRRdE9IVzA9",
+        "names": [{
+            "metadata": {
+                "primary": true,
+                "source": {
+                    "type": "CONTACT",
+                    "id": "50062a6d91123456"
+                }
+            },
+            "displayName": "Vinny",
+            "givenName": "Vinny",
+            "displayNameLastFirst": "Vinny",
+            "unstructuredName": "Vinny"
+        }]
+    },
+    "fullContactUpdated": {
+        "resourceName": "people/c732814806012454425",
+        "etag": "%EggBAgkMLjc9ABCDEFABByIMbzMzdFFTQ1lKZTQ9",
+        "names": [{
+            "metadata": {
+                "primary": true,
+                "source": {
+                    "type": "CONTACT",
+                    "id": "57e372409d123456"
+                }
+            },
+            "displayName": "John Doe",
+            "familyName": "Doe",
+            "givenName": "John",
+            "displayNameLastFirst": "Doe, John",
+            "unstructuredName": "John Doe"
+        }],
+        "organizations": [{
+            "metadata": {
+                "primary": true,
+                "source": {
+                    "type": "CONTACT",
+                    "id": "57e372409d123456"
+                },
+                "sourcePrimary": true
+            },
+            "type": "Other",
+            "formattedType": "Other",
+            "name": "Acme Inc",
+            "title": "Manager"
+        }]
+    }
+}
