@@ -1,10 +1,5 @@
-/*
-    This code is for syncing Google Contacts downloaded from the API to a Notion database.
-    It is a one-way sync and does not delete Notion items when the Google Contact is deleted out of caution.
-    It is intentended to be run in an n8n environment 
-    More info on n8n: https://docs.n8n.io/nodes/n8n-nodes-base.function
-*/
 
+// Dictionary mapping internal preoperties to their Properties in Notion
 const ContactToNotionPropertiesMap = {
     contactId: "contactId",
     fullName: "Name",
@@ -14,6 +9,10 @@ const ContactToNotionPropertiesMap = {
     title: "Title"
 };
 
+/* 
+    class ContactItem 
+    Base class for Contacts, supports equality comparison for data fields and export to Notion data
+*/
 
 class ContactItem {
     type; // "google" or "notion"
@@ -62,11 +61,22 @@ class ContactItem {
     }
 }
 
+/* 
+function notionTextProperty(textValue, type = "rich_text")
+returns an object that represents a text property in Notion structure
+*/
+
 function notionTextProperty(textValue, type = "rich_text") {
     let textProperty = {};
     textProperty[type] = [{text: {content: textValue}}];
     return textProperty;
 }
+
+/* 
+    class GoogleContactItem extends ContactItem
+    Construct it with a Google Connection item from the People API and it normalizes the data
+    into a ContactItem
+*/
 
 class GoogleContactItem extends ContactItem {
     constructor(item) {
@@ -85,10 +95,18 @@ class GoogleContactItem extends ContactItem {
     }
 }
 
+
+// helper function used for filtering out Google Connections we don't want to sync
 function isGoogleConnectionValid(connection) {
     return connection.names?.length > 0;
 }
 
+
+/*
+    class NotionContactItem extends ContactItem
+    Constructed with a NotionDataPage it will normalize the data into a ContactItem
+    Supports a few convenience getters
+*/
 class NotionContactItem extends ContactItem {
     constructor(item) {
         super(new NotionDatabasePage(item));
@@ -110,6 +128,10 @@ class NotionContactItem extends ContactItem {
     }
 }
 
+/* 
+    class NotionDatabasePage
+    A class that supports a few convenience functions to traverse Notion Page objects
+*/
 class NotionDatabasePage {
     item; // Notion Database Page
 
@@ -120,6 +142,12 @@ class NotionDatabasePage {
     getPageId() {
         return this.item["id"];
     }
+
+    /*
+        function getTextProperty(propertyName) 
+        returns the string value for a text property
+        abstracts away the complexity of reading text values from Notion objects
+    */
 
     getTextProperty(propertyName) {
         if (this.item.properties[propertyName] == undefined) return undefined;
@@ -137,6 +165,12 @@ class NotionDatabasePage {
     }
 }
 
+/* 
+    function constructContactItem(item)
+    returns ContactItem
+    Pass in a raw contact object received from Google or Notion and this constructs the
+    right type
+*/
 
 function constructContactItem(item) {
     // only and all notion items contain an "id" field, so use that to determine type

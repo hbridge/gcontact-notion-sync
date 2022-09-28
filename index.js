@@ -1,4 +1,10 @@
 "use strict"
+
+/*
+    This code is for syncing Google Contacts downloaded from the API to a Notion database.
+    It is a one-way sync and does not delete Notion items when the Google Contact is deleted out of caution.
+*/
+
 const path = require('path');
 const fs = require('fs');
 const { calculateContactRequests } = require('./src/syncContacts');
@@ -21,16 +27,20 @@ const scopes = [
     'https://www.googleapis.com/auth/people',
 ];
 
-/* Notion */
+/* Notion setup */
 const { Client, collectPaginatedAPI } = require("@notionhq/client");
+const NotionConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '../notion.config.json')));
+const notion = new Client({
+    auth: NotionConfig.notion_token,
+});
 
 async function run() {
+    // Fetch Google Contacts
     const auth = await authenticate({
         keyfilePath: path.join(__dirname, '../gcontact-notion-sync-keyfile.json'),
         scopes: ['https://www.googleapis.com/auth/contacts'],
     });
     google.options({ auth });
-
 
     const {
         data: { connections },
@@ -40,13 +50,8 @@ async function run() {
         pageSize: 1000,
     });
     console.log("\n\nDownloaded %d Google Connections\n", connections.length);
-    //fs.writeFileSync(path.join(__dirname, 'testdata/googleconnections.json'), JSON.stringify(connections, null, 2));
 
-    const NotionConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '../notion.config.json')));
-    const notion = new Client({
-        auth: NotionConfig.notion_token,
-    });
-
+    // Fetch Notion Contact Pages
     const notionPages = await collectPaginatedAPI(notion.databases.query, {
         database_id: NotionConfig.database_id,
         filter: {
@@ -56,10 +61,9 @@ async function run() {
             rich_text: { is_not_empty: true }
         }
     });
-
     console.log("Retrieved %d Notion pages", notionPages.length);
-    //fs.writeFileSync(path.join(__dirname, 'testdata/notionPages.json'), JSON.stringify(notionPages, null, 2));
 
+    // Calculate changes to sync to Notion
     const googleContacts = connections
         .filter(connect => isGoogleConnectionValid(connect))
         .map(connect => constructContactItem(connect));
@@ -69,6 +73,7 @@ async function run() {
     const changes = calculateContactRequests(googleContacts, notionContacts);
     console.log('Found %d changes', changes.length);
     
+    // Send changes (creates and updates) to Notion
     for (let change of changes) {
         if (change.type == "create") {
             const response = await notion.pages.create(
@@ -82,6 +87,8 @@ async function run() {
             throw "unknown change type";
         }
     }
+
+    console.log('Sync run complete.');
 }
 
 if (module === require.main) {
