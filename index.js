@@ -15,13 +15,6 @@ const { google } = require('googleapis');
 const { authenticate } = require('@google-cloud/local-auth');
 const people = google.people('v1');
 
-/* Google setup */
-const oauth2Client = new google.auth.OAuth2(
-    process.env.GCONTACT_NOTION_SYNC_CLIENT_ID,
-    process.env.GCONTACT_NOTION_SYNC_SECRET,
-    process.env.GCONTACT_NOTION_SYNC_REDIRECT_URL
-);
-
 // generate a url that asks permissions for the people scope
 const scopes = [
     'https://www.googleapis.com/auth/people',
