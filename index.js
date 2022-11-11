@@ -41,7 +41,7 @@ function getOauthClient() {
   return oauthClient;
 }
 
-async function runSync(oauth2Client) {
+async function syncWithClient(oauth2Client) {
   const {
     data: { connections },
   } = await people.people.connections.list({
@@ -121,11 +121,13 @@ async function run() {
         const { tokens } = await oauth2Client.getToken(q.code);
         oauth2Client.setCredentials(tokens);
 
-        /** Save credential to the global variable in case access token was refreshed.
-          * ACTION ITEM: In a production app, you likely want to save the refresh token
+        if (tokens.refresh_token !== undefined) {
+          // note this is only returned after first authorizing the app, not on every call
+          /* ACTION ITEM: In a production app, you likely want to save the refresh token
           *              in a secure persistent database instead. */
+        }
         console.log('userCredientials obtained, running sync');
-        runSync(oauth2Client);
+        syncWithClient(oauth2Client);
       }
     }
 
@@ -138,4 +140,9 @@ if (module === require.main) {
   run().catch(console.error);
 }
 
-module.exports = run;
+async function runSync() {
+  // todo get the list of users/refresh tokens to sync
+}
+
+exports.run = run;
+exports.runSync = runSync;
