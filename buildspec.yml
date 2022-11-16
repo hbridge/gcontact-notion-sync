@@ -6,7 +6,7 @@ phases:
       nodejs: 19
     commands:
       - echo Installing node...
-  pre-build:
+  pre_build:
     commands:
       - echo Installing source NPM dependencies.
       - npm install
@@ -14,7 +14,7 @@ phases:
     commands:
       - echo Building the Node code...
       - npm run test
-  post-build:
+  post_build:
     commands:
       - echo Build completed on `date`
 artifacts:
