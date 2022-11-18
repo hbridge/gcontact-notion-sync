@@ -1,6 +1,7 @@
 {
     "name": "gcontact-notion-sync",
     "version": "1.0.0",
+    "private": true,
     "description": "Node app to sync Google Contacts to Notion",
     "main": "index.js",
     "scripts": {

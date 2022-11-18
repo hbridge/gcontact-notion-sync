@@ -27,7 +27,19 @@ const notion = new Client({
     auth: NotionConfig.notion_token,
 });
 
+
+var port = process.env.PORT || 3000,
+    http = require('http'),
+    fs = require('fs'),
+    html = fs.readFileSync('index.html');
+
+var log = function(entry) {
+    fs.appendFileSync('/tmp/google-notion-sync.log', new Date().toISOString() + ' - ' + entry + '\n');
+};
+
+
 async function run() {
+    log("run called");
     // Fetch Google Contacts
     const auth = await authenticate({
         keyfilePath: path.join(__dirname, '../gcontact-notion-sync-keyfile.json'),
