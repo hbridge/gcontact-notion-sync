@@ -10,6 +10,8 @@ const http = require('http');
 const path = require('path');
 const url = require('url');
 
+const env = process.argv[2] || 'prod';
+
 /* Google */
 const { google } = require('googleapis');
 
@@ -31,6 +33,14 @@ const notion = new Client({
   auth: NotionConfig.notion_token,
 });
 
+function log(entry) {
+  if (env === 'dev') {
+    console.log(entry);
+  } else {
+    fs.appendFileSync('/tmp/google-notion-sync.log', `${new Date().toISOString()} - ${entry}\n`);
+  }
+}
+
 function getOauthClient() {
   const GoogleKeyFile = JSON.parse(fs.readFileSync(GoogleKeyfileFilePath));
   const oauthClient = new google.auth.OAuth2(
@@ -50,7 +60,7 @@ async function syncWithClient(oauth2Client) {
     resourceName: 'people/me',
     pageSize: 1000,
   });
-  console.log('\n\nDownloaded %d Google Connections\n', connections.length);
+  log('\n\nDownloaded %d Google Connections\n', connections.length);
 
   // Fetch Notion Contact Pages
   const notionPages = await collectPaginatedAPI(notion.databases.query, {
@@ -62,21 +72,21 @@ async function syncWithClient(oauth2Client) {
       rich_text: { is_not_empty: true },
     },
   });
-  console.log('Retrieved %d Notion pages', notionPages.length);
+  log('Retrieved %d Notion pages', notionPages.length);
 
   // Calculate changes to sync to Notion
   const googleContacts = connections
     .filter((connect) => isGoogleConnectionValid(connect))
     .map((connect) => constructContactItem(connect));
   const notionContacts = notionPages.map((page) => constructContactItem(page));
-  console.log(
+  log(
     'Calculating changes for %d Google Connections and %d Notion Pages',
     googleContacts.length,
 
     notionContacts.length,
   );
   const changes = calculateContactRequests(googleContacts, notionContacts);
-  console.log('Found %d changes', changes.length);
+  log('Found %d changes', changes.length);
 
   // Send changes (creates and updates) to Notion
   const responses = changes.map(async (change) => {
@@ -92,11 +102,12 @@ async function syncWithClient(oauth2Client) {
     throw Error('unknown change type');
   });
 
-  console.log('Responses %s %s:\n%s', JSON.stringify(responses, 2));
-  console.log('Sync run complete.');
+  log('Responses %s %s:\n%s', JSON.stringify(responses, 2));
+  log('Sync run complete.');
 }
 
 async function run() {
+  log('run called');
   const oauth2Client = getOauthClient();
   const authorizationUrl = oauth2Client.generateAuthUrl({
     access_type: 'offline',
@@ -116,7 +127,7 @@ async function run() {
       const q = url.parse(req.url, true).query;
 
       if (q.error) { // An error response e.g. error=access_denied
-        console.log(`Error:${q.error}`);
+        log(`Error:${q.error}`);
       } else { // Get access and refresh tokens (if access_type is offline)
         const { tokens } = await oauth2Client.getToken(q.code);
         oauth2Client.setCredentials(tokens);
@@ -126,14 +137,14 @@ async function run() {
           /* ACTION ITEM: In a production app, you likely want to save the refresh token
           *              in a secure persistent database instead. */
         }
-        console.log('userCredientials obtained, running sync');
+        log('userCredientials obtained, running sync');
         syncWithClient(oauth2Client);
       }
     }
 
     res.end();
   }).listen(3000);
-  console.log('listening on port 3000');
+  log('listening on port 3000');
 }
 
 if (module === require.main) {
