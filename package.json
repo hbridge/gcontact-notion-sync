@@ -4,6 +4,7 @@
     "description": "Node app to sync Google Contacts to Notion",
     "main": "index.js",
     "scripts": {
+        "start": "node index.js",
         "test": "jest"
     },
     "repository": {
