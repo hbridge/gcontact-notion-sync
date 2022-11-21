@@ -7,7 +7,6 @@ is deleted out of caution.
 const fs = require('fs');
 const http = require('http');
 // const https = require('https');
-const path = require('path');
 const url = require('url');
 
 const env = process.argv[2] || 'prod';
@@ -18,7 +17,14 @@ const { google } = require('googleapis');
 const people = google.people('v1');
 
 // generate a url that asks permissions for the people scope
-const GoogleKeyfileFilePath = path.join(__dirname, '../gcontact-notion-sync-keyfile.json');
+const {
+  GNS_GOOGLE_CLIENT_ID,
+  GNS_GOOGLE_CLIENT_SECRET,
+  GNS_GOOGLE_REDIRECT_URL,
+  GNS_NOTION_TOKEN_SECRET,
+  GNS_NOTION_DATABASE_ID,
+} = process.env;
+
 const GoogleScopes = [
   'https://www.googleapis.com/auth/contacts',
 ];
@@ -28,9 +34,8 @@ const { Client, collectPaginatedAPI } = require('@notionhq/client');
 const { constructContactItem, isGoogleConnectionValid } = require('./src/contacts');
 const { calculateContactRequests } = require('./src/syncContacts');
 
-const NotionConfig = JSON.parse(fs.readFileSync(path.join(__dirname, '../notion.config.json')));
 const notion = new Client({
-  auth: NotionConfig.notion_token,
+  auth: GNS_NOTION_TOKEN_SECRET,
 });
 
 function log(entry) {
@@ -42,11 +47,10 @@ function log(entry) {
 }
 
 function getOauthClient() {
-  const GoogleKeyFile = JSON.parse(fs.readFileSync(GoogleKeyfileFilePath));
   const oauthClient = new google.auth.OAuth2(
-    GoogleKeyFile.web.client_id,
-    GoogleKeyFile.web.client_secret,
-    GoogleKeyFile.web.redirect_uris,
+    GNS_GOOGLE_CLIENT_ID,
+    GNS_GOOGLE_CLIENT_SECRET,
+    GNS_GOOGLE_REDIRECT_URL,
   );
   return oauthClient;
 }
@@ -64,7 +68,7 @@ async function syncWithClient(oauth2Client) {
 
   // Fetch Notion Contact Pages
   const notionPages = await collectPaginatedAPI(notion.databases.query, {
-    database_id: NotionConfig.database_id,
+    database_id: GNS_NOTION_DATABASE_ID,
     filter: {
       property: 'contactId',
       // if an item doesn't have a contactId, it is a Notion item that wasn't synced from Google
@@ -92,11 +96,11 @@ async function syncWithClient(oauth2Client) {
   const responses = changes.map(async (change) => {
     if (change.type === 'create') {
       return notion.pages.create(
-        change.toNotionRequestData(NotionConfig.database_id),
+        change.toNotionRequestData(GNS_NOTION_DATABASE_ID),
       );
     } if (change.type === 'update') {
       return notion.pages.update(
-        change.toNotionRequestData(NotionConfig.database_id),
+        change.toNotionRequestData(GNS_NOTION_DATABASE_ID),
       );
     }
     throw Error('unknown change type');
