@@ -121,6 +121,11 @@ async function run() {
 
   http.createServer(async (req, res) => {
     if (req.url === '/') {
+      res.writeHead(200, {
+        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+      });
+      res.write('Hello world');
+    } else if (req.url === '/auth') {
       res.writeHead(301, {
         Location: authorizationUrl,
         // Disable caching for now
