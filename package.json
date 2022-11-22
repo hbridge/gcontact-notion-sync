@@ -27,7 +27,8 @@
     "homepage": "https://github.com/hbridge/gcontact-notion-sync#readme",
     "dependencies": {
         "@notionhq/client": "^2.2.0",
-        "googleapis": "^107.0.0"
+        "googleapis": "^107.0.0",
+        "pg": "^8.8.0"
     },
     "devDependencies": {
         "eslint": "^8.27.0",

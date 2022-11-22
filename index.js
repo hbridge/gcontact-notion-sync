@@ -6,11 +6,12 @@ is deleted out of caution.
 
 const fs = require('fs');
 const http = require('http');
-// const https = require('https');
 const url = require('url');
 
 const env = process.argv[2] || 'prod';
 const port = process.env.PORT || 3000;
+
+const { Client: PGClient } = require('pg');
 
 /* Google */
 const { google } = require('googleapis');
@@ -44,7 +45,7 @@ function log(entry) {
     console.log(entry);
   } else {
     console.log(entry);
-    // fs.appendFileSync('/tmp/google-notion-sync.log', `${new Date().toISOString()} - ${entry}\n`);
+    fs.appendFileSync('/tmp/google-notion-sync.log', `${new Date().toISOString()} - ${entry}\n`);
   }
 }
 
@@ -118,6 +119,27 @@ const authorizationUrl = oauth2Client.generateAuthUrl({
   scope: GoogleScopes,
   include_granted_scopes: true,
 });
+
+const dbOptions = {
+  host: process.env.RDS_HOSTNAME || process.env.POSTGRES_HOSTNAME,
+  user: process.env.RDS_USERNAME || process.env.POSTGRES_USERNAME,
+  password: process.env.RDS_PASSWORD || process.env.POSTGRES_PASSWORD,
+  port: process.env.RDS_PORT || process.env.POSTGRES_PORT,
+  database: process.env.RDS_DBNAME || process.env.POSTGRES_DBNAME,
+};
+
+log(`connecting to DB: ${dbOptions.user}@${dbOptions.host}:${dbOptions.port}/${dbOptions.database}`);
+const client = new PGClient(dbOptions);
+
+client.connect();
+try {
+  client.query('SELECT $1::text as message', ['Database connection worked'], (err, res) => {
+    log(err ? err.stack : res.rows[0].message); // Hello World!
+    client.end();
+  });
+} catch (error) {
+  log(`could not connect: ${error}`);
+}
 
 const html = fs.readFileSync('index.html');
 log('creating server');
