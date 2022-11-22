@@ -10,13 +10,13 @@ const http = require('http');
 const url = require('url');
 
 const env = process.argv[2] || 'prod';
+const port = process.env.PORT || 3000;
 
 /* Google */
 const { google } = require('googleapis');
 
 const people = google.people('v1');
 
-// generate a url that asks permissions for the people scope
 const {
   GNS_GOOGLE_CLIENT_ID,
   GNS_GOOGLE_CLIENT_SECRET,
@@ -25,6 +25,7 @@ const {
   GNS_NOTION_DATABASE_ID,
 } = process.env;
 
+// generate a url that asks permissions for the people scope
 const GoogleScopes = [
   'https://www.googleapis.com/auth/contacts',
 ];
@@ -42,7 +43,8 @@ function log(entry) {
   if (env === 'dev') {
     console.log(entry);
   } else {
-    fs.appendFileSync('/tmp/google-notion-sync.log', `${new Date().toISOString()} - ${entry}\n`);
+    console.log(entry);
+    // fs.appendFileSync('/tmp/google-notion-sync.log', `${new Date().toISOString()} - ${entry}\n`);
   }
 }
 
@@ -110,21 +112,41 @@ async function syncWithClient(oauth2Client) {
   log('Sync run complete.');
 }
 
-async function run() {
-  log('run called');
-  const oauth2Client = getOauthClient();
-  const authorizationUrl = oauth2Client.generateAuthUrl({
-    access_type: 'offline',
-    scope: GoogleScopes,
-    include_granted_scopes: true,
-  });
+const oauth2Client = getOauthClient();
+const authorizationUrl = oauth2Client.generateAuthUrl({
+  access_type: 'offline',
+  scope: GoogleScopes,
+  include_granted_scopes: true,
+});
 
-  http.createServer(async (req, res) => {
+const html = fs.readFileSync('index.html');
+log('creating server');
+
+const server = http.createServer(async (req, res) => {
+  if (req.method === 'POST') {
+    let body = '';
+
+    req.on('data', (chunk) => {
+      body += chunk;
+    });
+
+    req.on('end', () => {
+      if (req.url === '/') {
+        log(`Received message: ${body}`);
+      } else if (req.url = '/scheduled') {
+        log(`Received task ${req.headers['x-aws-sqsd-taskname']} scheduled at ${req.headers['x-aws-sqsd-scheduled-at']}`);
+      }
+
+      res.writeHead(200, 'OK', { 'Content-Type': 'text/plain' });
+      res.end();
+    });
+  } else if (req.method === 'GET') {
     if (req.url === '/') {
       res.writeHead(200, {
         'Cache-Control': 'private, no-cache, no-store, must-revalidate',
       });
-      res.write('Hello world');
+      res.write(html);
+      res.end();
     } else if (req.url === '/auth') {
       res.writeHead(301, {
         Location: authorizationUrl,
@@ -150,19 +172,21 @@ async function run() {
         syncWithClient(oauth2Client);
       }
     }
+  }
 
-    res.end();
-  }).listen(3000);
-  log('listening on port 3000');
-}
+  res.end();
+});
 
-if (module === require.main) {
-  run().catch(console.error);
-}
+server.listen(port);
+log(`listening on port ${port}`);
 
-async function runSync() {
-  // todo get the list of users/refresh tokens to sync
-}
+// if (module === require.main) {
+//   run().catch(console.error);
+// }
 
-exports.run = run;
-exports.runSync = runSync;
+// async function runSync() {
+//   // todo get the list of users/refresh tokens to sync
+// }
+
+// exports.run = run;
+// exports.runSync = runSync;
