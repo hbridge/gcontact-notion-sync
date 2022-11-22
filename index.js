@@ -125,7 +125,7 @@ const dbOptions = {
   user: process.env.RDS_USERNAME || process.env.POSTGRES_USERNAME,
   password: process.env.RDS_PASSWORD || process.env.POSTGRES_PASSWORD,
   port: process.env.RDS_PORT || process.env.POSTGRES_PORT,
-  database: process.env.RDS_DBNAME || process.env.POSTGRES_DBNAME,
+  database: process.env.RDS_DB_NAME || process.env.POSTGRES_DBNAME,
 };
 
 log(`connecting to DB: ${dbOptions.user}@${dbOptions.host}:${dbOptions.port}/${dbOptions.database}`);
