@@ -129,15 +129,27 @@ const dbOptions = {
   database: process.env.RDS_DB_NAME || process.env.POSTGRES_DBNAME,
 };
 
-log(`connecting to DB: ${dbOptions.user}@${dbOptions.host}:${dbOptions.port}/${dbOptions.database}`);
-const client = new PGClient(dbOptions);
-
-client.connect();
+const initClient = new PGClient(dbOptions);
 try {
-  client.query('SELECT $1::text as message', ['Database connection worked'], (err, res) => {
-    log(err ? err.stack : res.rows[0].message); // Hello World!
-    client.end();
-  });
+  log(`connecting to DB: ${dbOptions.user}@${dbOptions.host}:${dbOptions.port}/${dbOptions.database}`);
+  initClient.connect();
+} catch (error) {
+  log(`could not connect to DB: ${error}`);
+}
+
+try {
+  log('creating table if needed...');
+  initClient.query(
+    `CREATE TABLE IF NOT EXISTS refresh_tokens (
+      g_sub VARCHAR(255) PRIMARY KEY,
+      refresh_token VARCHAR(512)
+      );`,
+    [],
+    (err, res) => {
+      log(err ? err.stack : 'Table present. Response rowcount: ', res.rowCount);
+      initClient.end();
+    },
+  );
 } catch (error) {
   log(`could not connect: ${error}`);
 }
@@ -156,7 +168,7 @@ const server = http.createServer(async (req, res) => {
     req.on('end', () => {
       if (req.url === '/') {
         log(`Received message: ${body}`);
-      } else if (req.url = '/scheduled') {
+      } else if (req.url === '/scheduled') {
         log(`Received task ${req.headers['x-aws-sqsd-taskname']} scheduled at ${req.headers['x-aws-sqsd-scheduled-at']}`);
       }
 
@@ -183,24 +195,46 @@ const server = http.createServer(async (req, res) => {
       if (q.error) { // An error response e.g. error=access_denied
         log(`Error:${q.error}`);
       } else { // Get access and refresh tokens (if access_type is offline)
-        const { tokens } = await oauth2Client.getToken(q.code);
-        oauth2Client.setCredentials(tokens);
+        try {
+          const { tokens } = await oauth2Client.getToken(q.code);
+          oauth2Client.setCredentials(tokens);
 
-        const ticket = await oauth2Client.verifyIdToken({
-          idToken: tokens.id_token,
-          audience: GNS_GOOGLE_CLIENT_ID,
-        });
-        const payload = ticket.getPayload();
-        const userId = payload.sub;
+          const ticket = await oauth2Client.verifyIdToken({
+            idToken: tokens.id_token,
+            audience: GNS_GOOGLE_CLIENT_ID,
+          });
+          const payload = ticket.getPayload();
+          const gSub = payload.sub;
 
-        if (tokens.refresh_token !== undefined) {
-          // note this is only returned after first authorizing the app, not on every call
-          /* ACTION ITEM: In a production app, you likely want to save the refresh token
-          *              in a secure persistent database instead. */
+          if (tokens.refresh_token !== undefined) {
+            // store the refresh token in the DB by Google's sub
+            // a persistent userId, therefore primary key
+            try {
+              const client = new PGClient(dbOptions);
+              client.connect();
+              await client.query(
+                `INSERT INTO refresh_tokens(g_sub, refresh_token)
+                VALUES ($1, $2)
+                ON CONFLICT (g_sub) 
+                DO UPDATE SET refresh_token=EXCLUDED.refresh_token`,
+                [gSub, tokens.refresh_token],
+              );
+              log(`Saved token for gSub ${gSub}`);
+            } catch (error) {
+              log(`Error saving refresh token: ${error.stack}`);
+            }
+          }
+
+          log('userCredientials obtained, running sync');
+          syncWithClient(oauth2Client);
+          res.writeHead(200, {
+            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+          });
+          res.write('OK');
+        } catch (error) {
+          res.writeHead(400);
+          res.write('Invalid token');
         }
-
-        log('userCredientials obtained, running sync');
-        syncWithClient(oauth2Client);
       }
     }
   }
