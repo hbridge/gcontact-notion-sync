@@ -29,6 +29,7 @@ const {
 // generate a url that asks permissions for the people scope
 const GoogleScopes = [
   'https://www.googleapis.com/auth/contacts',
+  'openid',
 ];
 
 /* Notion setup */
