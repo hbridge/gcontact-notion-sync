@@ -185,11 +185,19 @@ const server = http.createServer(async (req, res) => {
         const { tokens } = await oauth2Client.getToken(q.code);
         oauth2Client.setCredentials(tokens);
 
+        const ticket = await oauth2Client.verifyIdToken({
+          idToken: tokens.id_token,
+          audience: GNS_GOOGLE_CLIENT_ID,
+        });
+        const payload = ticket.getPayload();
+        const userId = payload.sub;
+
         if (tokens.refresh_token !== undefined) {
           // note this is only returned after first authorizing the app, not on every call
           /* ACTION ITEM: In a production app, you likely want to save the refresh token
           *              in a secure persistent database instead. */
         }
+
         log('userCredientials obtained, running sync');
         syncWithClient(oauth2Client);
       }
