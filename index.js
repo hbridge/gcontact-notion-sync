@@ -114,6 +114,7 @@ async function handleAuthCallback(req, res) {
         log(`Error saving refresh token: ${error.stack}`);
       }
     } else {
+      log('No refresh token in response');
       res.writeHead(200, NoCacheOptions);
       res.write('No refresh token.  Please un-authorize and re-authorize this app');
     }
