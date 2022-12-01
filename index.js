@@ -112,13 +112,16 @@ async function handleAuthCallback(req, res) {
         res.write('Credentials saved');
       } catch (error) {
         log(`Error saving refresh token: ${error.stack}`);
+        res.writeHead(500, NoCacheOptions);
+        res.write('Server error');
       }
     } else {
-      log('No refresh token in response');
+      log('handleAuthCallback: No refresh token in response');
       res.writeHead(200, NoCacheOptions);
       res.write('No refresh token.  Please un-authorize and re-authorize this app');
     }
   } catch (error) {
+    log('handleAuthCallback: Invalid token');
     res.writeHead(400, NoCacheOptions);
     res.write('Invalid token');
   }
