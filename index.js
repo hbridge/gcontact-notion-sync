@@ -50,6 +50,14 @@ function log(entry) {
   }
 }
 
+const dbOptions = {
+  host: process.env.RDS_HOSTNAME || process.env.POSTGRES_HOSTNAME,
+  user: process.env.RDS_USERNAME || process.env.POSTGRES_USERNAME,
+  password: process.env.RDS_PASSWORD || process.env.POSTGRES_PASSWORD,
+  port: process.env.RDS_PORT || process.env.POSTGRES_PORT,
+  database: process.env.RDS_DB_NAME || process.env.POSTGRES_DBNAME,
+};
+
 function getOauthClient() {
   const oauthClient = new google.auth.OAuth2(
     GNS_GOOGLE_CLIENT_ID,
@@ -59,75 +67,145 @@ function getOauthClient() {
   return oauthClient;
 }
 
-async function syncWithClient(oauth2Client) {
-  const {
-    data: { connections },
-  } = await people.people.connections.list({
-    auth: oauth2Client,
-    personFields: ['names', 'emailAddresses', 'organizations'],
-    resourceName: 'people/me',
-    pageSize: 1000,
-  });
-  log('\n\nDownloaded %d Google Connections\n', connections.length);
+async function handleAuthCallback(req, res) {
+  // Handle the OAuth 2.0 server response
+  const q = url.parse(req.url, true).query;
 
-  // Fetch Notion Contact Pages
-  const notionPages = await collectPaginatedAPI(notion.databases.query, {
-    database_id: GNS_NOTION_DATABASE_ID,
-    filter: {
-      property: 'contactId',
-      // if an item doesn't have a contactId, it is a Notion item that wasn't synced from Google
-      // (for example, by a user clicking new).  We want to skip these.
-      rich_text: { is_not_empty: true },
-    },
-  });
-  log('Retrieved %d Notion pages', notionPages.length);
+  if (q.error) { // An error response e.g. error=access_denied
+    log(`Error:${q.error}`);
+    res.writeHead(400);
+    res.write(`Error:${q.error}`);
+    return;
+  }
+  // Get access and refresh tokens (if access_type is offline)
+  try {
+    const oauth2Client = getOauthClient();
+    const { tokens } = await oauth2Client.getToken(q.code);
+    oauth2Client.setCredentials(tokens);
 
-  // Calculate changes to sync to Notion
-  const googleContacts = connections
-    .filter((connect) => isGoogleConnectionValid(connect))
-    .map((connect) => constructContactItem(connect));
-  const notionContacts = notionPages.map((page) => constructContactItem(page));
-  log(
-    'Calculating changes for %d Google Connections and %d Notion Pages',
-    googleContacts.length,
+    const ticket = await oauth2Client.verifyIdToken({
+      idToken: tokens.id_token,
+      audience: GNS_GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    const gSub = payload.sub;
 
-    notionContacts.length,
-  );
-  const changes = calculateContactRequests(googleContacts, notionContacts);
-  log('Found %d changes', changes.length);
-
-  // Send changes (creates and updates) to Notion
-  const responses = changes.map(async (change) => {
-    if (change.type === 'create') {
-      return notion.pages.create(
-        change.toNotionRequestData(GNS_NOTION_DATABASE_ID),
-      );
-    } if (change.type === 'update') {
-      return notion.pages.update(
-        change.toNotionRequestData(GNS_NOTION_DATABASE_ID),
-      );
+    if (tokens.refresh_token !== undefined) {
+      // store the refresh token in the DB by Google's sub
+      // a persistent userId, therefore primary key
+      try {
+        const client = new PGClient(dbOptions);
+        client.connect();
+        await client.query(
+          `INSERT INTO refresh_tokens(g_sub, refresh_token)
+            VALUES ($1, $2)
+            ON CONFLICT (g_sub) 
+            DO UPDATE SET refresh_token=EXCLUDED.refresh_token`,
+          [gSub, tokens.refresh_token],
+        );
+        log(`Saved token for gSub ${gSub}`);
+      } catch (error) {
+        log(`Error saving refresh token: ${error.stack}`);
+      }
     }
-    throw Error('unknown change type');
-  });
 
-  log('Responses %s %s:\n%s', JSON.stringify(responses, 2));
-  log('Sync run complete.');
+    res.writeHead(200, {
+      'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+    });
+    res.write('OK');
+  } catch (error) {
+    res.writeHead(400);
+    res.write('Invalid token');
+  }
 }
 
-const oauth2Client = getOauthClient();
-const authorizationUrl = oauth2Client.generateAuthUrl({
-  access_type: 'offline',
-  scope: GoogleScopes,
-  include_granted_scopes: true,
-});
+async function handleSyncContacts(req, res) {
+  const q = url.parse(req.url, true).query;
+  const gSub = q.sub;
+  if (!gSub) {
+    res.writeHead(400);
+    res.write('sub is required');
+    return;
+  }
 
-const dbOptions = {
-  host: process.env.RDS_HOSTNAME || process.env.POSTGRES_HOSTNAME,
-  user: process.env.RDS_USERNAME || process.env.POSTGRES_USERNAME,
-  password: process.env.RDS_PASSWORD || process.env.POSTGRES_PASSWORD,
-  port: process.env.RDS_PORT || process.env.POSTGRES_PORT,
-  database: process.env.RDS_DB_NAME || process.env.POSTGRES_DBNAME,
-};
+  try {
+    const client = new PGClient(dbOptions);
+    client.connect();
+    const result = await client.query(
+      `SELECT * FROM refresh_tokens
+      WHERE g_sub=$1`,
+      [gSub],
+    );
+
+    if (result.rowCount === 0) {
+      log(`Refresh token not found for ${gSub}`);
+      res.writeHead(400);
+    }
+
+    const oauth2Client = getOauthClient();
+    const [firstRow] = result.rows;
+    const { refresh_token: refreshToken } = firstRow;
+    oauth2Client.credentials.refresh_token = refreshToken;
+
+    await oauth2Client.getAccessToken();
+    const { data: { connections } } = await people.people.connections.list({
+      auth: oauth2Client,
+      personFields: ['names', 'emailAddresses', 'organizations'],
+      resourceName: 'people/me',
+      pageSize: 1000,
+    });
+    log(`\n\nDownloaded ${connections.length} Google Connections\n`);
+
+    // Fetch Notion Contact Pages
+    const notionPages = await collectPaginatedAPI(notion.databases.query, {
+      database_id: GNS_NOTION_DATABASE_ID,
+      filter: {
+        property: 'contactId',
+        // if an item doesn't have a contactId, it is a Notion item that wasn't synced from Google
+        // (for example, by a user clicking new).  We want to skip these.
+        rich_text: { is_not_empty: true },
+      },
+    });
+    log(`Retrieved ${notionPages.length} Notion pages`);
+
+    // Calculate changes to sync to Notion
+    const googleContacts = connections
+      .filter((connect) => isGoogleConnectionValid(connect))
+      .map((connect) => constructContactItem(connect));
+    const notionContacts = notionPages.map((page) => constructContactItem(page));
+    log(`Calculating changes for ${googleContacts.length} Google Connections and ${notionContacts.length} Notion Pages`);
+    const changes = calculateContactRequests(googleContacts, notionContacts);
+    log(`Found ${changes.length} changes`);
+
+    // Send changes (creates and updates) to Notion
+    const responses = changes.map(async (change) => {
+      if (change.type === 'create') {
+        return notion.pages.create(
+          change.toNotionRequestData(GNS_NOTION_DATABASE_ID),
+        );
+      } if (change.type === 'update') {
+        return notion.pages.update(
+          change.toNotionRequestData(GNS_NOTION_DATABASE_ID),
+        );
+      }
+      throw Error('unknown change type');
+    });
+
+    log('Sync run complete.');
+    if (env === 'dev') {
+      console.log('Responses:', responses);
+    }
+  } catch (error) {
+    log(`
+      Error: ${error}
+      ***
+      Stack: 
+      ${error.stack}
+    `);
+    res.writeHead(500);
+    res.write('An error ocurred');
+  }
+}
 
 const initClient = new PGClient(dbOptions);
 try {
@@ -183,59 +261,21 @@ const server = http.createServer(async (req, res) => {
       res.write(html);
       res.end();
     } else if (req.url === '/auth') {
+      const oauth2Client = getOauthClient();
+      const authorizationUrl = oauth2Client.generateAuthUrl({
+        access_type: 'offline',
+        scope: GoogleScopes,
+        include_granted_scopes: true,
+      });
       res.writeHead(301, {
         Location: authorizationUrl,
         // Disable caching for now
         'Cache-Control': 'private, no-cache, no-store, must-revalidate',
       });
     } else if (req.url.startsWith('/oath2callback')) {
-      // Handle the OAuth 2.0 server response
-      const q = url.parse(req.url, true).query;
-
-      if (q.error) { // An error response e.g. error=access_denied
-        log(`Error:${q.error}`);
-      } else { // Get access and refresh tokens (if access_type is offline)
-        try {
-          const { tokens } = await oauth2Client.getToken(q.code);
-          oauth2Client.setCredentials(tokens);
-
-          const ticket = await oauth2Client.verifyIdToken({
-            idToken: tokens.id_token,
-            audience: GNS_GOOGLE_CLIENT_ID,
-          });
-          const payload = ticket.getPayload();
-          const gSub = payload.sub;
-
-          if (tokens.refresh_token !== undefined) {
-            // store the refresh token in the DB by Google's sub
-            // a persistent userId, therefore primary key
-            try {
-              const client = new PGClient(dbOptions);
-              client.connect();
-              await client.query(
-                `INSERT INTO refresh_tokens(g_sub, refresh_token)
-                VALUES ($1, $2)
-                ON CONFLICT (g_sub) 
-                DO UPDATE SET refresh_token=EXCLUDED.refresh_token`,
-                [gSub, tokens.refresh_token],
-              );
-              log(`Saved token for gSub ${gSub}`);
-            } catch (error) {
-              log(`Error saving refresh token: ${error.stack}`);
-            }
-          }
-
-          log('userCredientials obtained, running sync');
-          syncWithClient(oauth2Client);
-          res.writeHead(200, {
-            'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-          });
-          res.write('OK');
-        } catch (error) {
-          res.writeHead(400);
-          res.write('Invalid token');
-        }
-      }
+      handleAuthCallback(req, res);
+    } else if (req.url.startsWith('/synccontacts')) {
+      handleSyncContacts(req, res);
     }
   }
 
