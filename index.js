@@ -104,15 +104,17 @@ async function handleAuthCallback(req, res) {
           [gSub, tokens.refresh_token],
         );
         log(`Saved token for gSub ${gSub}`);
+        res.writeHead(200, {
+          'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+        });
+        res.write('Credentials saved');
       } catch (error) {
         log(`Error saving refresh token: ${error.stack}`);
       }
+    } else {
+      res.writeHead(200);
+      res.write('No refresh token.  Please un-authorize and re-authorize this app');
     }
-
-    res.writeHead(200, {
-      'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-    });
-    res.write('OK');
   } catch (error) {
     res.writeHead(400);
     res.write('Invalid token');
