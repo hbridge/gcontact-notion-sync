@@ -67,13 +67,17 @@ function getOauthClient() {
   return oauthClient;
 }
 
+const NoCacheOptions = {
+  'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+};
+
 async function handleAuthCallback(req, res) {
   // Handle the OAuth 2.0 server response
   const q = url.parse(req.url, true).query;
 
   if (q.error) { // An error response e.g. error=access_denied
     log(`Error:${q.error}`);
-    res.writeHead(400);
+    res.writeHead(400, NoCacheOptions);
     res.write(`Error:${q.error}`);
     return;
   }
@@ -104,19 +108,17 @@ async function handleAuthCallback(req, res) {
           [gSub, tokens.refresh_token],
         );
         log(`Saved token for gSub ${gSub}`);
-        res.writeHead(200, {
-          'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-        });
+        res.writeHead(200, NoCacheOptions);
         res.write('Credentials saved');
       } catch (error) {
         log(`Error saving refresh token: ${error.stack}`);
       }
     } else {
-      res.writeHead(200);
+      res.writeHead(200, NoCacheOptions);
       res.write('No refresh token.  Please un-authorize and re-authorize this app');
     }
   } catch (error) {
-    res.writeHead(400);
+    res.writeHead(400, NoCacheOptions);
     res.write('Invalid token');
   }
 }
@@ -125,7 +127,7 @@ async function handleSyncContacts(req, res) {
   const q = url.parse(req.url, true).query;
   const gSub = q.sub;
   if (!gSub) {
-    res.writeHead(400);
+    res.writeHead(400, NoCacheOptions);
     res.write('sub is required');
     return;
   }
@@ -141,14 +143,16 @@ async function handleSyncContacts(req, res) {
 
     if (result.rowCount === 0) {
       log(`Refresh token not found for ${gSub}`);
-      res.writeHead(400);
+      res.writeHead(400, NoCacheOptions);
+      res.write('Credentials not found, please re-auth');
+      return;
     }
 
-    const oauth2Client = getOauthClient();
     const [firstRow] = result.rows;
     const { refresh_token: refreshToken } = firstRow;
-    oauth2Client.credentials.refresh_token = refreshToken;
 
+    const oauth2Client = getOauthClient();
+    oauth2Client.credentials.refresh_token = refreshToken;
     await oauth2Client.getAccessToken();
     const { data: { connections } } = await people.people.connections.list({
       auth: oauth2Client,
@@ -204,7 +208,7 @@ async function handleSyncContacts(req, res) {
       Stack: 
       ${error.stack}
     `);
-    res.writeHead(500);
+    res.writeHead(500, NoCacheOptions);
     res.write('An error ocurred');
   }
 }
@@ -257,9 +261,7 @@ const server = http.createServer(async (req, res) => {
     });
   } else if (req.method === 'GET') {
     if (req.url === '/') {
-      res.writeHead(200, {
-        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
-      });
+      res.writeHead(200, NoCacheOptions);
       res.write(html);
       res.end();
     } else if (req.url === '/auth') {
@@ -270,14 +272,12 @@ const server = http.createServer(async (req, res) => {
         include_granted_scopes: true,
       });
       res.writeHead(301, {
-        Location: authorizationUrl,
-        // Disable caching for now
-        'Cache-Control': 'private, no-cache, no-store, must-revalidate',
+        Location: authorizationUrl, NoCacheOptions,
       });
     } else if (req.url.startsWith('/oath2callback')) {
-      handleAuthCallback(req, res);
+      await handleAuthCallback(req, res);
     } else if (req.url.startsWith('/synccontacts')) {
-      handleSyncContacts(req, res);
+      await handleSyncContacts(req, res);
     }
   }
 
