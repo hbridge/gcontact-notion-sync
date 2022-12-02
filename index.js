@@ -228,10 +228,13 @@ const server = http.createServer(async (req, res) => {
       res.writeHead(301, {
         Location: authorizationUrl, NoCacheOptions,
       });
-    } else if (req.url.startsWith('/oath2callback')) {
+    } else if (req.url.startsWith('/oauth2callback')) {
       await handleAuthCallback(req, res);
     } else if (req.url.startsWith('/synccontacts')) {
       await handleSyncContacts(req, res);
+    } else {
+      res.writeHead(404);
+      res.write('Not found');
     }
   }
 
