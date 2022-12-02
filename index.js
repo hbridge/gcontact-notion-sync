@@ -146,7 +146,7 @@ async function handleSyncContacts(req, res) {
 
     // Calculate changes to sync to Notion
     const googleContacts = connections
-      .filter((connect) => isGoogleConnectionValid(connect))
+      .filter((connect) => iqsGoogleConnectionValid(connect))
       .map((connect) => constructContactItem(connect));
     const notionContacts = notionPages.map((page) => constructContactItem(page));
     log(`Calculating changes for ${googleContacts.length} Google Connections and ${notionContacts.length} Notion Pages`);
@@ -180,8 +180,14 @@ async function handleSyncContacts(req, res) {
       Stack: 
       ${error.stack}
     `);
-    res.writeHead(500, NoCacheOptions);
-    res.write('An error ocurred');
+    if (error.message === 'invalid_grant') {
+      res.writeHead(403, NoCacheOptions);
+      res.write('Invalid token, please re-authorize');
+      // todo delete old token
+    } else {
+      res.writeHead(500, NoCacheOptions);
+      res.write('An error ocurred');
+    }
   }
 }
 
