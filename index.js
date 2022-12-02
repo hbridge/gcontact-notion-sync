@@ -146,7 +146,7 @@ async function handleSyncContacts(req, res) {
 
     // Calculate changes to sync to Notion
     const googleContacts = connections
-      .filter((connect) => iqsGoogleConnectionValid(connect))
+      .filter((connect) => isGoogleConnectionValid(connect))
       .map((connect) => constructContactItem(connect));
     const notionContacts = notionPages.map((page) => constructContactItem(page));
     log(`Calculating changes for ${googleContacts.length} Google Connections and ${notionContacts.length} Notion Pages`);
