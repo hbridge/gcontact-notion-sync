@@ -8,10 +8,7 @@ const fs = require('fs');
 const http = require('http');
 const url = require('url');
 
-const env = process.argv[2] || 'prod';
 const port = process.env.PORT || 3000;
-
-const { Client: PGClient } = require('pg');
 
 /* Google */
 const { google } = require('googleapis');
@@ -34,29 +31,14 @@ const GoogleScopes = [
 
 /* Notion setup */
 const { Client, collectPaginatedAPI } = require('@notionhq/client');
+const { log, getEnv } = require('./src/util');
 const { constructContactItem, isGoogleConnectionValid } = require('./src/contacts');
 const { calculateContactRequests } = require('./src/syncContacts');
+const { DataStore } = require('./src/dataStore');
 
 const notion = new Client({
   auth: GNS_NOTION_TOKEN_SECRET,
 });
-
-function log(entry) {
-  if (env === 'dev') {
-    console.log(entry);
-  } else {
-    console.log(entry);
-    fs.appendFileSync('/tmp/google-notion-sync.log', `${new Date().toISOString()} - ${entry}\n`);
-  }
-}
-
-const dbOptions = {
-  host: process.env.RDS_HOSTNAME || process.env.POSTGRES_HOSTNAME,
-  user: process.env.RDS_USERNAME || process.env.POSTGRES_USERNAME,
-  password: process.env.RDS_PASSWORD || process.env.POSTGRES_PASSWORD,
-  port: process.env.RDS_PORT || process.env.POSTGRES_PORT,
-  database: process.env.RDS_DB_NAME || process.env.POSTGRES_DBNAME,
-};
 
 function getOauthClient() {
   const oauthClient = new google.auth.OAuth2(
@@ -71,7 +53,10 @@ const NoCacheOptions = {
   'Cache-Control': 'private, no-cache, no-store, must-revalidate',
 };
 
+const datastore = new DataStore();
+
 async function handleAuthCallback(req, res) {
+  log('handleAuthCallback');
   // Handle the OAuth 2.0 server response
   const q = url.parse(req.url, true).query;
 
@@ -98,16 +83,7 @@ async function handleAuthCallback(req, res) {
       // store the refresh token in the DB by Google's sub
       // a persistent userId, therefore primary key
       try {
-        const client = new PGClient(dbOptions);
-        client.connect();
-        await client.query(
-          `INSERT INTO refresh_tokens(g_sub, refresh_token)
-            VALUES ($1, $2)
-            ON CONFLICT (g_sub) 
-            DO UPDATE SET refresh_token=EXCLUDED.refresh_token`,
-          [gSub, tokens.refresh_token],
-        );
-        log(`Saved token for gSub ${gSub}`);
+        datastore.storeToken(gSub, tokens.refresh_token);
         res.writeHead(200, NoCacheOptions);
         res.write('Credentials saved');
       } catch (error) {
@@ -137,23 +113,13 @@ async function handleSyncContacts(req, res) {
   }
 
   try {
-    const client = new PGClient(dbOptions);
-    client.connect();
-    const result = await client.query(
-      `SELECT * FROM refresh_tokens
-      WHERE g_sub=$1`,
-      [gSub],
-    );
-
-    if (result.rowCount === 0) {
+    const refreshToken = await datastore.getToken(gSub);
+    if (!refreshToken) {
       log(`Refresh token not found for ${gSub}`);
       res.writeHead(400, NoCacheOptions);
       res.write('Credentials not found, please re-auth');
       return;
     }
-
-    const [firstRow] = result.rows;
-    const { refresh_token: refreshToken } = firstRow;
 
     const oauth2Client = getOauthClient();
     oauth2Client.credentials.refresh_token = refreshToken;
@@ -202,9 +168,11 @@ async function handleSyncContacts(req, res) {
     });
 
     log('Sync run complete.');
-    if (env === 'dev') {
+    if (getEnv() === 'dev') {
       console.log('Responses:', responses);
     }
+    res.writeHead(200, NoCacheOptions);
+    res.write(`Sync complete with ${changes.length} updates`);
   } catch (error) {
     log(`
       Error: ${error}
@@ -217,35 +185,11 @@ async function handleSyncContacts(req, res) {
   }
 }
 
-const initClient = new PGClient(dbOptions);
-try {
-  log(`connecting to DB: ${dbOptions.user}@${dbOptions.host}:${dbOptions.port}/${dbOptions.database}`);
-  initClient.connect();
-} catch (error) {
-  log(`could not connect to DB: ${error}`);
-}
-
-try {
-  log('creating table if needed...');
-  initClient.query(
-    `CREATE TABLE IF NOT EXISTS refresh_tokens (
-      g_sub VARCHAR(255) PRIMARY KEY,
-      refresh_token VARCHAR(512)
-      );`,
-    [],
-    (err, res) => {
-      log(err ? err.stack : 'Table present. Response rowcount: ', res.rowCount);
-      initClient.end();
-    },
-  );
-} catch (error) {
-  log(`could not connect: ${error}`);
-}
-
 const html = fs.readFileSync('index.html');
 log('creating server');
 
 const server = http.createServer(async (req, res) => {
+  await datastore.init();
   if (req.method === 'POST') {
     let body = '';
 
